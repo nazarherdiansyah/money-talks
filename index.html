@@ -687,34 +687,43 @@ async function graphPatch(url, body) {
 async function initExcelFile() {
   let found = null;
   const baseName = state.fileName.replace(/\.xlsx$/i, '');
-  const tryNames = [state.fileName, baseName, baseName + '.xlsx', baseName + '.XLSX'];
-  for (const name of tryNames) {
-    if (found) break;
+  const debugLog = [];
+
+  try {
+    const r = await graphGet(`/me/drive/root:/${encodeURIComponent(baseName)}?$select=id,name`);
+    debugLog.push('direct-noext: ' + r.name);
+    if (r && r.id) found = r;
+  } catch(e) { debugLog.push('direct-noext err: ' + e.message); }
+
+  if (!found) {
     try {
-      const r = await graphGet(`/me/drive/root:/${encodeURIComponent(name)}?$select=id,name`);
-      if (r && r.id) { found = r; break; }
-    } catch(e) {}
+      const r = await graphGet(`/me/drive/root:/${encodeURIComponent(baseName + '.xlsx')}?$select=id,name`);
+      debugLog.push('direct-xlsx: ' + r.name);
+      if (r && r.id) found = r;
+    } catch(e) { debugLog.push('direct-xlsx err: ' + e.message); }
   }
+
   if (!found) {
     try {
       const children = await graphGet(`/me/drive/root/children?$select=id,name&$top=200`);
-      found = children.value?.find(f => {
-        const fn = f.name.toLowerCase().replace(/\.xlsx$/,'');
-        const sn = baseName.toLowerCase();
-        return fn === sn || f.name.toLowerCase() === state.fileName.toLowerCase();
-      });
-    } catch(e) {}
+      const names = children.value?.map(f => f.name) || [];
+      debugLog.push('children: ' + JSON.stringify(names));
+      found = children.value?.find(f => f.name.toLowerCase().replace(/\.xlsx$/,'') === baseName.toLowerCase());
+    } catch(e) { debugLog.push('children err: ' + e.message); }
   }
+
   if (!found) {
     try {
-      const search = await graphGet(`/me/drive/root/search(q='${baseName}')?$select=id,name`);
-      found = search.value?.find(f => {
-        const fn = f.name.toLowerCase().replace(/\.xlsx$/,'');
-        return fn === baseName.toLowerCase() || f.name.toLowerCase() === state.fileName.toLowerCase();
-      });
-    } catch(e) {}
+      const me = await graphGet('/me/drive/root?$select=id,name');
+      debugLog.push('root: ' + JSON.stringify(me));
+    } catch(e) { debugLog.push('root err: ' + e.message); }
   }
-  if (!found) throw new Error(`File tidak ditemukan. Cek nama file di OneDrive — nama yang Anda isi: "${state.fileName}"`);
+
+  if (!found) {
+    const msg = 'DEBUG INFO:\n' + debugLog.join('\n');
+    console.error(msg);
+    throw new Error('File tidak ditemukan. Buka Console browser (F12) untuk detail debug.');
+  }
   state.fileId = found.id;
   await ensureSheets();
   await loadFromExcel();
