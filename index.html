@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dompet Bersama</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --bg: #f7f6f3;
+    --surface: #ffffff;
+    --surface2: #f0efe9;
+    --border: #e4e2d9;
+    --text: #1a1916;
+    --muted: #7a7870;
+    --accent: #2d4a3e;
+    --accent-l: #e8f0ec;
+    --green: #1a7a4a;
+    --green-l: #e6f5ec;
+    --red: #c0392b;
+    --red-l: #fdecea;
+    --amber: #b45309;
+    --amber-l: #fef3cd;
+    --blue: #1d4ed8;
+    --blue-l: #eff6ff;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  a { color: var(--accent); }
+
+  /* ── Layout ── */
+  .shell { display: flex; min-height: 100vh; }
+  .sidebar {
+    width: 220px; flex-shrink: 0; background: var(--accent);
+    display: flex; flex-direction: column; padding: 24px 16px;
+    position: sticky; top: 0; height: 100vh;
+  }
+  .logo { color: #fff; font-size: 18px; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.3px; }
+  .logo span { opacity: .55; font-weight: 400; font-size: 12px; display: block; margin-top: 2px; }
+  .nav { margin-top: 32px; display: flex; flex-direction: column; gap: 4px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px; padding: 9px 12px;
+    border-radius: var(--radius-sm); cursor: pointer; color: rgba(255,255,255,.65);
+    font-size: 13px; font-weight: 500; transition: all .15s; border: none; background: none; text-align: left; width: 100%;
+  }
+  .nav-item:hover { background: rgba(255,255,255,.1); color: #fff; }
+  .nav-item.active { background: rgba(255,255,255,.18); color: #fff; }
+  .nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+  .nav-section { font-size: 10px; font-weight: 600; color: rgba(255,255,255,.35); text-transform: uppercase; letter-spacing: 1px; padding: 0 12px; margin-top: 20px; margin-bottom: 6px; }
+  .sync-status { margin-top: auto; padding: 10px 12px; border-radius: var(--radius-sm); background: rgba(255,255,255,.08); font-size: 11px; color: rgba(255,255,255,.6); }
+  .sync-dot { width: 7px; height: 7px; border-radius: 50%; background: #4ade80; display: inline-block; margin-right: 6px; }
+  .sync-dot.err { background: #f87171; }
+
+  .main { flex: 1; overflow-x: hidden; }
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 32px 0; margin-bottom: 28px;
+  }
+  .topbar h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.4px; }
+  .topbar-meta { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .btn {
+    padding: 9px 18px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600;
+    cursor: pointer; border: 1px solid var(--border); background: var(--surface);
+    color: var(--text); transition: all .15s; font-family: inherit;
+  }
+  .btn:hover { background: var(--surface2); }
+  .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn-primary:hover { background: #1e3429; }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+
+  .content { padding: 0 32px 40px; }
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ── Setup screen ── */
+  .setup-wrap { max-width: 560px; margin: 0 auto; padding-top: 20px; }
+  .setup-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 16px; }
+  .setup-step { display: flex; gap: 16px; margin-bottom: 20px; align-items: flex-start; }
+  .step-num { width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; }
+  .step-body h3 { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .step-body p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+  .step-body code { background: var(--surface2); padding: 2px 6px; border-radius: 4px; font-family: 'DM Mono', monospace; font-size: 12px; color: var(--accent); }
+  .field-group { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+  .field-group label { font-size: 12px; font-weight: 600; color: var(--muted); }
+  .field-group input { padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; font-family: 'DM Mono', monospace; background: var(--bg); color: var(--text); outline: none; }
+  .field-group input:focus { border-color: var(--accent); }
+  .alert { padding: 12px 14px; border-radius: var(--radius-sm); font-size: 13px; line-height: 1.5; margin-bottom: 12px; }
+  .alert-info { background: var(--blue-l); color: #1e40af; border: 1px solid #bfdbfe; }
+  .alert-warn { background: var(--amber-l); color: #92400e; border: 1px solid #fde68a; }
+  .alert-success { background: var(--green-l); color: #14532d; border: 1px solid #bbf7d0; }
+  .alert-err { background: var(--red-l); color: #7f1d1d; border: 1px solid #fecaca; }
+
+  /* ── Metric cards ── */
+  .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 24px; }
+  .metric { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; }
+  .metric-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 8px; }
+  .metric-val { font-size: 24px; font-weight: 700; letter-spacing: -0.8px; font-family: 'DM Mono', monospace; }
+  .metric-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .metric.green .metric-val { color: var(--green); }
+  .metric.red .metric-val { color: var(--red); }
+  .metric.accent .metric-val { color: var(--accent); }
+  .metric.amber .metric-val { color: var(--amber); }
+
+  /* ── Charts ── */
+  .charts-row { display: grid; grid-template-columns: 1.5fr 1fr; gap: 14px; margin-bottom: 24px; }
+  .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+  .chart-card h3 { font-size: 13px; font-weight: 600; margin-bottom: 16px; color: var(--muted); }
+  .chart-wrap { position: relative; height: 200px; }
+
+  /* ── Table ── */
+  .table-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .table-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--border); }
+  .table-header h3 { font-size: 14px; font-weight: 600; }
+  .table-controls { display: flex; gap: 8px; align-items: center; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; padding: 10px 20px; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; background: var(--bg); }
+  td { padding: 12px 20px; border-top: 1px solid var(--border); vertical-align: middle; }
+  tr:hover td { background: var(--surface2); }
+  .badge { display: inline-block; padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .badge-green { background: var(--green-l); color: var(--green); }
+  .badge-red { background: var(--red-l); color: var(--red); }
+  .badge-amber { background: var(--amber-l); color: var(--amber); }
+  .badge-blue { background: var(--blue-l); color: var(--blue); }
+  .who-s { background: #ede9fe; color: #5b21b6; }
+  .who-i { background: #fce7f3; color: #9d174d; }
+
+  /* ── Input form ── */
+  .form-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; max-width: 600px; }
+  .form-title { font-size: 16px; font-weight: 700; margin-bottom: 20px; }
+  .type-row { display: flex; gap: 8px; margin-bottom: 20px; }
+  .type-btn { flex: 1; padding: 10px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; cursor: pointer; border: 1.5px solid var(--border); background: var(--bg); color: var(--muted); transition: all .15s; font-family: inherit; }
+  .type-btn.exp.on { border-color: var(--red); background: var(--red-l); color: var(--red); }
+  .type-btn.inc.on { border-color: var(--green); background: var(--green-l); color: var(--green); }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-grid.full { grid-template-columns: 1fr; }
+  .form-field label { font-size: 12px; font-weight: 600; color: var(--muted); display: block; margin-bottom: 5px; }
+  .form-field input, .form-field select {
+    width: 100%; padding: 9px 12px; border: 1px solid var(--border);
+    border-radius: var(--radius-sm); font-size: 13px; font-family: inherit;
+    background: var(--bg); color: var(--text); outline: none;
+  }
+  .form-field input:focus, .form-field select:focus { border-color: var(--accent); }
+  .form-actions { margin-top: 20px; display: flex; gap: 8px; }
+
+  /* ── Budget page ── */
+  .budget-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; margin-bottom: 24px; }
+  .budget-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; }
+  .budget-item-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .budget-item-top .cat { font-size: 13px; font-weight: 600; }
+  .budget-item-top .pct { font-size: 13px; font-weight: 700; font-family: 'DM Mono', monospace; }
+  .progress { height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
+  .progress-bar { height: 100%; border-radius: 3px; transition: width .4s; }
+  .budget-item-bot { font-size: 11px; color: var(--muted); display: flex; justify-content: space-between; }
+
+  /* ── Loading ── */
+  .loading { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 13px; padding: 40px 0; justify-content: center; }
+  .spinner { width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  select { cursor: pointer; }
+  .month-nav { display: flex; align-items: center; gap: 8px; }
+  .month-nav span { font-size: 13px; font-weight: 600; min-width: 120px; text-align: center; }
+  .empty { text-align: center; padding: 32px; color: var(--muted); font-size: 13px; }
+
+  @media (max-width: 900px) {
+    .sidebar { width: 180px; }
+    .metrics { grid-template-columns: repeat(2, 1fr); }
+    .charts-row { grid-template-columns: 1fr; }
+    .topbar, .content { padding-left: 20px; padding-right: 20px; }
+  }
+  @media (max-width: 640px) {
+    .shell { flex-direction: column; }
+    .sidebar { width: 100%; height: auto; flex-direction: row; flex-wrap: wrap; padding: 14px 16px; }
+    .nav { flex-direction: row; margin-top: 8px; flex-wrap: wrap; }
+    .nav-section { display: none; }
+    .metrics { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="logo">Dompet Bersama <span>Keuangan Keluarga</span></div>
+    <nav class="nav">
+      <div class="nav-section">Menu</div>
+      <button class="nav-item active" onclick="showPage('dashboard')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        Dashboard
+      </button>
+      <button class="nav-item" onclick="showPage('input')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        Catat Transaksi
+      </button>
+      <button class="nav-item" onclick="showPage('riwayat')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        Riwayat
+      </button>
+      <button class="nav-item" onclick="showPage('budget')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        Budget
+      </button>
+      <div class="nav-section">Sistem</div>
+      <button class="nav-item" onclick="showPage('setup')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M16.24 7.76a6 6 0 0 1 0 8.49M4.93 19.07a10 10 0 0 1 0-14.14M7.76 16.24a6 6 0 0 1 0-8.49"/></svg>
+        Koneksi OneDrive
+      </button>
+    </nav>
+    <div class="sync-status" id="syncStatus">
+      <span class="sync-dot err" id="syncDot"></span>
+      <span id="syncText">Belum terhubung</span>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+
+    <!-- ═══ SETUP PAGE ═══ -->
+    <div id="page-setup" class="page active">
+      <div class="topbar"><div><h1>Koneksi OneDrive</h1><div class="topbar-meta">Setup sekali, langsung terhubung selamanya</div></div></div>
+      <div class="content">
+        <div class="setup-wrap">
+
+          <div class="alert alert-info">
+            Ikuti 3 langkah di bawah untuk menghubungkan web app ini dengan file Excel di OneDrive Anda. Cukup dilakukan sekali.
+          </div>
+
+          <div class="setup-card">
+            <div class="setup-step">
+              <div class="step-num">1</div>
+              <div class="step-body">
+                <h3>Daftarkan aplikasi di Azure</h3>
+                <p>Buka <a href="https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationsListBlade" target="_blank">portal.azure.com → App registrations → New registration</a>.</p>
+                <p style="margin-top:6px">Isi nama bebas misal <code>DompetBersama</code>. Pilih <strong>Personal Microsoft accounts only</strong>. Di Redirect URI pilih <strong>Single-page application</strong> lalu isi <code>http://localhost</code> (atau URL file HTML ini jika di-hosting).</p>
+                <p style="margin-top:6px">Setelah dibuat, catat <strong>Application (client) ID</strong>-nya.</p>
+              </div>
+            </div>
+            <div class="setup-step">
+              <div class="step-num">2</div>
+              <div class="step-body">
+                <h3>Buat file Excel di OneDrive</h3>
+                <p>Buka <a href="https://onedrive.live.com" target="_blank">OneDrive</a>, buat folder misal <code>Keuangan</code>, lalu buat file Excel baru bernama <code>DompetBersama.xlsx</code>. Tidak perlu isi apapun — aplikasi akan otomatis membuat sheet dan kolom yang dibutuhkan.</p>
+              </div>
+            </div>
+            <div class="setup-step" style="margin-bottom:0">
+              <div class="step-num">3</div>
+              <div class="step-body">
+                <h3>Tempel ID di bawah dan hubungkan</h3>
+                <div class="field-group">
+                  <label>Client ID (dari langkah 1)</label>
+                  <input type="text" id="cfgClientId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+                  <label style="margin-top:6px">Nama file Excel (termasuk ekstensi)</label>
+                  <input type="text" id="cfgFileName" value="DompetBersama.xlsx" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="setupAlert"></div>
+          <div style="display:flex; gap:8px">
+            <button class="btn btn-primary" onclick="doConnect()">Hubungkan ke OneDrive</button>
+            <button class="btn" onclick="useDemo()">Coba dengan data demo</button>
+          </div>
+          <p style="font-size:12px; color:var(--muted); margin-top:10px">Mode demo menggunakan data lokal tanpa koneksi OneDrive. Cocok untuk melihat tampilan sebelum setup.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ DASHBOARD PAGE ═══ -->
+    <div id="page-dashboard" class="page">
+      <div class="topbar">
+        <div>
+          <h1>Dashboard</h1>
+          <div class="topbar-meta" id="dashboardMeta">Memuat data...</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-sm" onclick="refreshData()">&#8635; Segarkan</button>
+          <button class="btn btn-sm btn-primary" onclick="showPage('input')">+ Catat</button>
+        </div>
+      </div>
+      <div class="content">
+        <div id="dashLoading" class="loading"><div class="spinner"></div> Memuat dari OneDrive…</div>
+        <div id="dashContent" style="display:none">
+          <div class="metrics" id="metricsRow"></div>
+          <div class="charts-row">
+            <div class="chart-card">
+              <h3>Tren 6 bulan terakhir</h3>
+              <div class="chart-wrap"><canvas id="trendChart"></canvas></div>
+            </div>
+            <div class="chart-card">
+              <h3>Pengeluaran per kategori</h3>
+              <div class="chart-wrap"><canvas id="catChart"></canvas></div>
+            </div>
+          </div>
+          <div class="table-card">
+            <div class="table-header">
+              <h3>Transaksi terbaru</h3>
+              <button class="btn btn-sm" onclick="showPage('riwayat')">Lihat semua</button>
+            </div>
+            <div id="recentTable"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ INPUT PAGE ═══ -->
+    <div id="page-input" class="page">
+      <div class="topbar"><div><h1>Catat Transaksi</h1><div class="topbar-meta">Data langsung tersimpan ke Excel OneDrive</div></div></div>
+      <div class="content">
+        <div class="form-card">
+          <div class="type-row">
+            <button class="type-btn exp on" id="btnExp" onclick="setType('expense')">— Pengeluaran</button>
+            <button class="type-btn inc" id="btnInc" onclick="setType('income')">+ Pemasukan</button>
+          </div>
+          <div class="form-grid">
+            <div class="form-field"><label>Jumlah (Rp)</label><input type="number" id="fAmount" placeholder="0" min="0"></div>
+            <div class="form-field"><label>Tanggal</label><input type="date" id="fDate"></div>
+          </div>
+          <div class="form-grid" style="margin-top:14px">
+            <div class="form-field"><label>Kategori</label>
+              <select id="fCat">
+                <option>Makan & Minum</option><option>Transportasi</option><option>Belanja</option>
+                <option>Tagihan</option><option>Kesehatan</option><option>Pendidikan</option>
+                <option>Hiburan</option><option>Tabungan</option><option>Gaji</option>
+                <option>Bonus</option><option>Lainnya</option>
+              </select>
+            </div>
+            <div class="form-field"><label>Dicatat oleh</label>
+              <select id="fWho"><option>Suami</option><option>Istri</option></select>
+            </div>
+          </div>
+          <div class="form-grid full" style="margin-top:14px">
+            <div class="form-field"><label>Keterangan</label><input type="text" id="fDesc" placeholder="Contoh: Makan siang berdua di warung padang"></div>
+          </div>
+          <div id="inputAlert" style="margin-top:12px"></div>
+          <div class="form-actions">
+            <button class="btn btn-primary" id="btnSave" onclick="saveTransaction()">Simpan ke Excel</button>
+            <button class="btn" onclick="resetForm()">Reset</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ RIWAYAT PAGE ═══ -->
+    <div id="page-riwayat" class="page">
+      <div class="topbar">
+        <div><h1>Riwayat Transaksi</h1></div>
+        <div class="month-nav">
+          <button class="btn btn-sm" onclick="changeMonth(-1)">&#8592;</button>
+          <span id="riwayatMonth"></span>
+          <button class="btn btn-sm" onclick="changeMonth(1)">&#8594;</button>
+        </div>
+      </div>
+      <div class="content">
+        <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+          <select id="fltType" onchange="renderRiwayat()" style="padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;background:var(--surface);font-family:inherit">
+            <option value="">Semua tipe</option><option value="expense">Pengeluaran</option><option value="income">Pemasukan</option>
+          </select>
+          <select id="fltWho" onchange="renderRiwayat()" style="padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;background:var(--surface);font-family:inherit">
+            <option value="">Semua orang</option><option value="Suami">Suami</option><option value="Istri">Istri</option>
+          </select>
+          <select id="fltCat" onchange="renderRiwayat()" style="padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;background:var(--surface);font-family:inherit">
+            <option value="">Semua kategori</option>
+          </select>
+        </div>
+        <div class="table-card"><div id="riwayatTable"></div></div>
+      </div>
+    </div>
+
+    <!-- ═══ BUDGET PAGE ═══ -->
+    <div id="page-budget" class="page">
+      <div class="topbar"><div><h1>Budget Bulanan</h1><div class="topbar-meta" id="budgetMeta"></div></div></div>
+      <div class="content">
+        <div id="budgetGrid" class="budget-grid"></div>
+        <div class="form-card" style="max-width:500px">
+          <div class="form-title" style="font-size:14px">Atur budget per kategori</div>
+          <div class="form-grid">
+            <div class="form-field"><label>Kategori</label>
+              <select id="bCat">
+                <option>Makan & Minum</option><option>Transportasi</option><option>Belanja</option>
+                <option>Tagihan</option><option>Kesehatan</option><option>Pendidikan</option>
+                <option>Hiburan</option><option>Tabungan</option><option>Lainnya</option>
+              </select>
+            </div>
+            <div class="form-field"><label>Limit (Rp/bulan)</label><input type="number" id="bAmt" placeholder="0"></div>
+          </div>
+          <div class="form-actions"><button class="btn btn-primary" onclick="saveBudget()">Simpan Budget</button></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-graph-client/3.0.7/graph-js-sdk.js"></script>
+<script>
+/* ══════════════════════════════════════════════
+   CONFIG & STATE
+══════════════════════════════════════════════ */
+const SCOPES = ['Files.ReadWrite', 'User.Read'];
+const MONTHS = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+const SHEET_NAME = 'Transaksi';
+const BUDGET_SHEET = 'Budget';
+
+let state = {
+  mode: 'setup',       // 'setup' | 'demo' | 'live'
+  clientId: '',
+  fileName: '',
+  fileId: '',
+  accessToken: '',
+  transactions: [],
+  budgets: {},
+  currentType: 'expense',
+  viewMonth: new Date().getMonth(),
+  viewYear: new Date().getFullYear(),
+};
+
+let trendInst = null, catInst = null;
+
+/* ══════════════════════════════════════════════
+   NAVIGATION
+══════════════════════════════════════════════ */
+function showPage(p) {
+  if (state.mode === 'setup' && p !== 'setup') {
+    alert('Hubungkan ke OneDrive terlebih dahulu, atau klik "Coba dengan data demo".');
+    return;
+  }
+  document.querySelectorAll('.page').forEach(x => x.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
+  document.getElementById('page-' + p).classList.add('active');
+  const map = {dashboard:0, input:1, riwayat:2, budget:3, setup:4};
+  document.querySelectorAll('.nav-item')[map[p]]?.classList.add('active');
+  if (p === 'dashboard') loadDashboard();
+  if (p === 'riwayat') { state.viewMonth = new Date().getMonth(); state.viewYear = new Date().getFullYear(); renderRiwayat(); }
+  if (p === 'budget') renderBudget();
+}
+
+/* ══════════════════════════════════════════════
+   DEMO MODE
+══════════════════════════════════════════════ */
+function useDemo() {
+  state.mode = 'demo';
+  state.transactions = generateDemoData();
+  state.budgets = { 'Makan & Minum':2000000, Transportasi:600000, Belanja:1000000, Tagihan:1500000, Kesehatan:500000, Hiburan:300000 };
+  setSyncStatus(true, 'Mode demo aktif');
+  showPage('dashboard');
+}
+
+function generateDemoData() {
+  const cats = ['Makan & Minum','Transportasi','Belanja','Tagihan','Kesehatan','Hiburan'];
+  const whos = ['Suami','Istri'];
+  const descs = {
+    'Makan & Minum':['Makan siang berdua','Belanja sayur & lauk','Makan malam keluarga','Beli buah-buahan'],
+    'Transportasi':['Bensin motor','Grab minggu ini','Servis motor','Ojol ke kantor'],
+    'Belanja':['Kebutuhan rumah tangga','Deterjen & sabun','Peralatan dapur','Beli baju anak'],
+    'Tagihan':['Listrik & air','Internet & streaming','Cicilan BPJS','Tagihan HP'],
+    'Kesehatan':['Beli obat & vitamin','Dokter gigi','Cek kesehatan','Apotek'],
+    'Hiburan':['Nonton bioskop','Jajan es krim','Belanja online','Ngopi bersama'],
+  };
+  const now = new Date();
+  const data = [];
+  let id = 1;
+  for (let m = 5; m >= 0; m--) {
+    const month = ((now.getMonth() - m) + 12) % 12;
+    const year = now.getFullYear() - (now.getMonth() < m ? 1 : 0);
+    data.push({ id: id++, type:'income', amount:8000000, date:`${year}-${String(month+1).padStart(2,'0')}-01`, category:'Gaji', who:'Suami', desc:'Gaji bulanan Suami' });
+    data.push({ id: id++, type:'income', amount:5500000, date:`${year}-${String(month+1).padStart(2,'0')}-01`, category:'Gaji', who:'Istri', desc:'Gaji bulanan Istri' });
+    cats.forEach(cat => {
+      const n = Math.floor(Math.random()*3)+2;
+      for(let i=0;i<n;i++){
+        const day = Math.floor(Math.random()*27)+1;
+        const d = descs[cat];
+        data.push({ id:id++, type:'expense', amount:Math.round((Math.random()*400000+50000)/1000)*1000,
+          date:`${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`,
+          category:cat, who:whos[Math.floor(Math.random()*2)], desc:d[Math.floor(Math.random()*d.length)] });
+      }
+    });
+  }
+  return data.sort((a,b) => new Date(b.date)-new Date(a.date));
+}
+
+/* ══════════════════════════════════════════════
+   ONEDRIVE / GRAPH API
+══════════════════════════════════════════════ */
+async function doConnect() {
+  const clientId = document.getElementById('cfgClientId').value.trim();
+  const fileName = document.getElementById('cfgFileName').value.trim();
+  if (!clientId) { showSetupAlert('Masukkan Client ID terlebih dahulu.', 'err'); return; }
+  if (!fileName) { showSetupAlert('Masukkan nama file Excel.', 'err'); return; }
+  state.clientId = clientId;
+  state.fileName = fileName;
+  localStorage.setItem('db_clientId', clientId);
+  localStorage.setItem('db_fileName', fileName);
+  try {
+    showSetupAlert('Menghubungkan ke Microsoft…', 'info');
+    await msalLogin();
+  } catch(e) {
+    showSetupAlert('Gagal login: ' + e.message, 'err');
+  }
+}
+
+async function msalLogin() {
+  // Use MSAL via CDN-less popup approach with implicit flow
+  const authUrl = `https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize?` +
+    `client_id=${state.clientId}&response_type=token&redirect_uri=${encodeURIComponent(location.href)}&` +
+    `scope=${encodeURIComponent(SCOPES.join(' '))}&response_mode=fragment`;
+  const popup = window.open(authUrl, 'msauth', 'width=500,height=600');
+  const token = await new Promise((resolve, reject) => {
+    const timer = setInterval(() => {
+      try {
+        if (popup.closed) { clearInterval(timer); reject(new Error('Login dibatalkan')); return; }
+        const hash = popup.location.hash;
+        if (hash && hash.includes('access_token')) {
+          clearInterval(timer);
+          popup.close();
+          const params = new URLSearchParams(hash.substring(1));
+          resolve(params.get('access_token'));
+        }
+      } catch(e) {}
+    }, 300);
+    setTimeout(() => { clearInterval(timer); popup?.close(); reject(new Error('Timeout')); }, 120000);
+  });
+  state.accessToken = token;
+  await initExcelFile();
+  state.mode = 'live';
+  setSyncStatus(true, 'Terhubung ke OneDrive');
+  showSetupAlert('Berhasil terhubung!', 'success');
+  setTimeout(() => showPage('dashboard'), 1000);
+}
+
+async function graphGet(url) {
+  const r = await fetch('https://graph.microsoft.com/v1.0' + url, {
+    headers: { Authorization: 'Bearer ' + state.accessToken }
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+async function graphPost(url, body) {
+  const r = await fetch('https://graph.microsoft.com/v1.0' + url, {
+    method: 'POST', headers: { Authorization: 'Bearer ' + state.accessToken, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+async function graphPatch(url, body) {
+  const r = await fetch('https://graph.microsoft.com/v1.0' + url, {
+    method: 'PATCH', headers: { Authorization: 'Bearer ' + state.accessToken, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+async function initExcelFile() {
+  const search = await graphGet(`/me/drive/root/search(q='${state.fileName}')?$select=id,name`);
+  const found = search.value?.find(f => f.name === state.fileName);
+  if (!found) throw new Error(`File "${state.fileName}" tidak ditemukan di OneDrive. Buat dulu ya.`);
+  state.fileId = found.id;
+  await ensureSheets();
+  await loadFromExcel();
+}
+
+async function ensureSheets() {
+  const sheets = await graphGet(`/me/drive/items/${state.fileId}/workbook/worksheets`);
+  const names = sheets.value.map(s => s.name);
+  if (!names.includes(SHEET_NAME)) {
+    await graphPost(`/me/drive/items/${state.fileId}/workbook/worksheets`, { name: SHEET_NAME });
+    await graphPost(`/me/drive/items/${state.fileId}/workbook/worksheets/${SHEET_NAME}/tables`, {
+      address: `${SHEET_NAME}!A1:G1`, hasHeaders: true
+    });
+    await graphPatch(`/me/drive/items/${state.fileId}/workbook/worksheets/${SHEET_NAME}/range(address='A1:G1')`, {
+      values: [['ID','Tanggal','Tipe','Kategori','Keterangan','Dicatat Oleh','Jumlah']]
+    });
+  }
+  if (!names.includes(BUDGET_SHEET)) {
+    await graphPost(`/me/drive/items/${state.fileId}/workbook/worksheets`, { name: BUDGET_SHEET });
+    await graphPatch(`/me/drive/items/${state.fileId}/workbook/worksheets/${BUDGET_SHEET}/range(address='A1:B1')`, {
+      values: [['Kategori','Limit']]
+    });
+  }
+}
+
+async function loadFromExcel() {
+  try {
+    const usedRange = await graphGet(`/me/drive/items/${state.fileId}/workbook/worksheets/${SHEET_NAME}/usedRange`);
+    const rows = usedRange.values || [];
+    if (rows.length <= 1) { state.transactions = []; return; }
+    state.transactions = rows.slice(1).filter(r => r[0]).map(r => ({
+      id: r[0], date: r[1], type: r[2], category: r[3], desc: r[4], who: r[5], amount: Number(r[6])
+    })).sort((a,b) => new Date(b.date)-new Date(a.date));
+
+    const bRange = await graphGet(`/me/drive/items/${state.fileId}/workbook/worksheets/${BUDGET_SHEET}/usedRange`);
+    const bRows = bRange.values || [];
+    state.budgets = {};
+    bRows.slice(1).forEach(r => { if (r[0]) state.budgets[r[0]] = Number(r[1]); });
+  } catch(e) { console.warn('Load error:', e); }
+}
+
+async function appendRowToExcel(tx) {
+  const row = [[tx.id, tx.date, tx.type, tx.category, tx.desc, tx.who, tx.amount]];
+  await graphPost(`/me/drive/items/${state.fileId}/workbook/worksheets/${SHEET_NAME}/tables/0/rows`, { values: row });
+}
+
+async function saveBudgetToExcel(cat, amt) {
+  const range = await graphGet(`/me/drive/items/${state.fileId}/workbook/worksheets/${BUDGET_SHEET}/usedRange`);
+  const rows = range.values || [];
+  const idx = rows.findIndex((r,i) => i>0 && r[0]===cat);
+  if (idx >= 0) {
+    await graphPatch(`/me/drive/items/${state.fileId}/workbook/worksheets/${BUDGET_SHEET}/range(address='B${idx+1}')`, { values: [[amt]] });
+  } else {
+    const nextRow = rows.length + 1;
+    await graphPatch(`/me/drive/items/${state.fileId}/workbook/worksheets/${BUDGET_SHEET}/range(address='A${nextRow}:B${nextRow}')`, { values: [[cat, amt]] });
+  }
+}
+
+/* ══════════════════════════════════════════════
+   DASHBOARD
+══════════════════════════════════════════════ */
+async function loadDashboard() {
+  document.getElementById('dashLoading').style.display = 'flex';
+  document.getElementById('dashContent').style.display = 'none';
+  if (state.mode === 'live') {
+    try { await loadFromExcel(); } catch(e) { console.warn(e); }
+  }
+  renderDashboard();
+  document.getElementById('dashLoading').style.display = 'none';
+  document.getElementById('dashContent').style.display = 'block';
+}
+
+function refreshData() {
+  if (state.mode === 'live') loadDashboard();
+  else renderDashboard();
+}
+
+function getMonthTx(m, y) {
+  return state.transactions.filter(t => { const d=new Date(t.date); return d.getMonth()===m && d.getFullYear()===y; });
+}
+
+function fmt(n) { return 'Rp' + Math.round(n).toLocaleString('id-ID'); }
+
+function renderDashboard() {
+  const now = new Date();
+  const m = now.getMonth(), y = now.getFullYear();
+  const txs = getMonthTx(m, y);
+  const income = txs.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount, 0);
+  const expense = txs.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount, 0);
+  const balance = income - expense;
+  const savPct = income > 0 ? Math.round(balance/income*100) : 0;
+  document.getElementById('dashboardMeta').textContent = MONTHS[m] + ' ' + y + ' · ' + txs.length + ' transaksi';
+  document.getElementById('metricsRow').innerHTML = `
+    <div class="metric green"><div class="metric-label">Pemasukan</div><div class="metric-val">${fmt(income)}</div><div class="metric-sub">Bulan ini</div></div>
+    <div class="metric red"><div class="metric-label">Pengeluaran</div><div class="metric-val">${fmt(expense)}</div><div class="metric-sub">Bulan ini</div></div>
+    <div class="metric accent"><div class="metric-label">Saldo Bersih</div><div class="metric-val">${fmt(balance)}</div><div class="metric-sub">Bulan ini</div></div>
+    <div class="metric amber"><div class="metric-label">Tabungan</div><div class="metric-val">${savPct}%</div><div class="metric-sub">Dari pemasukan</div></div>
+  `;
+
+  // Trend chart
+  const months6 = [];
+  for(let i=5;i>=0;i--){
+    const d = new Date(y, m-i, 1);
+    months6.push({ label:MONTHS[d.getMonth()].slice(0,3), m:d.getMonth(), y:d.getFullYear() });
+  }
+  const incArr = months6.map(x=>getMonthTx(x.m,x.y).filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0));
+  const expArr = months6.map(x=>getMonthTx(x.m,x.y).filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0));
+  if(trendInst) trendInst.destroy();
+  trendInst = new Chart(document.getElementById('trendChart'), {
+    type:'bar',
+    data:{ labels:months6.map(x=>x.label),
+      datasets:[
+        {label:'Pemasukan',data:incArr,backgroundColor:'#1a7a4a33',borderColor:'#1a7a4a',borderWidth:1.5,borderRadius:4},
+        {label:'Pengeluaran',data:expArr,backgroundColor:'#c0392b33',borderColor:'#c0392b',borderWidth:1.5,borderRadius:4}
+      ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{boxWidth:10,font:{size:11}}}},
+      scales:{y:{ticks:{callback:v=>'Rp'+Math.round(v/1000)+'rb',font:{size:10}},grid:{color:'#f0efe9'}}}}
+  });
+
+  // Cat chart
+  const catMap = {};
+  txs.filter(t=>t.type==='expense').forEach(t=>{ catMap[t.category]=(catMap[t.category]||0)+t.amount; });
+  const cats=Object.keys(catMap), vals=cats.map(c=>catMap[c]);
+  const colors=['#2d4a3e','#1a7a4a','#b45309','#c0392b','#1d4ed8','#7c3aed','#0f766e','#9d174d'];
+  if(catInst) catInst.destroy();
+  if(cats.length>0) catInst = new Chart(document.getElementById('catChart'), {
+    type:'doughnut', data:{labels:cats,datasets:[{data:vals,backgroundColor:colors.slice(0,cats.length),borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:11}}}}}
+  });
+
+  // Recent table
+  const recent = state.transactions.slice(0,8);
+  if(recent.length===0){ document.getElementById('recentTable').innerHTML='<div class="empty">Belum ada transaksi</div>'; return; }
+  document.getElementById('recentTable').innerHTML = `<table>
+    <thead><tr><th>Tanggal</th><th>Keterangan</th><th>Kategori</th><th>Oleh</th><th style="text-align:right">Jumlah</th></tr></thead>
+    <tbody>${recent.map(t=>`<tr>
+      <td style="font-family:'DM Mono',monospace;font-size:12px">${new Date(t.date).toLocaleDateString('id-ID',{day:'2-digit',month:'short'})}</td>
+      <td>${t.desc}</td>
+      <td><span class="badge badge-blue">${t.category}</span></td>
+      <td><span class="badge ${t.who==='Suami'?'who-s':'who-i'}">${t.who}</span></td>
+      <td style="text-align:right;font-family:'DM Mono',monospace;font-weight:600;color:${t.type==='income'?'var(--green)':'var(--red)'}">${t.type==='income'?'+':'-'}${fmt(t.amount)}</td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+
+/* ══════════════════════════════════════════════
+   INPUT
+══════════════════════════════════════════════ */
+function setType(t) {
+  state.currentType = t;
+  document.getElementById('btnExp').className = 'type-btn exp' + (t==='expense'?' on':'');
+  document.getElementById('btnInc').className = 'type-btn inc' + (t==='income'?' on':'');
+}
+
+async function saveTransaction() {
+  const amount = parseFloat(document.getElementById('fAmount').value);
+  const date = document.getElementById('fDate').value;
+  const category = document.getElementById('fCat').value;
+  const who = document.getElementById('fWho').value;
+  const desc = document.getElementById('fDesc').value.trim();
+  if(!amount||amount<=0){ showInputAlert('Masukkan jumlah yang valid.','err'); return; }
+  if(!date){ showInputAlert('Pilih tanggal.','err'); return; }
+  if(!desc){ showInputAlert('Isi keterangan transaksi.','err'); return; }
+
+  const tx = { id: Date.now(), date, type: state.currentType, category, desc, who, amount };
+  document.getElementById('btnSave').textContent = 'Menyimpan…';
+  document.getElementById('btnSave').disabled = true;
+  try {
+    if(state.mode==='live') await appendRowToExcel(tx);
+    state.transactions.unshift(tx);
+    showInputAlert('Transaksi berhasil disimpan ke Excel!', 'success');
+    resetForm();
+  } catch(e) {
+    showInputAlert('Gagal menyimpan: ' + e.message, 'err');
+  }
+  document.getElementById('btnSave').textContent = 'Simpan ke Excel';
+  document.getElementById('btnSave').disabled = false;
+}
+
+function resetForm() {
+  document.getElementById('fAmount').value='';
+  document.getElementById('fDesc').value='';
+  document.getElementById('fDate').valueAsDate = new Date();
+}
+
+/* ══════════════════════════════════════════════
+   RIWAYAT
+══════════════════════════════════════════════ */
+function changeMonth(dir) {
+  state.viewMonth += dir;
+  if(state.viewMonth<0){state.viewMonth=11;state.viewYear--;}
+  if(state.viewMonth>11){state.viewMonth=0;state.viewYear++;}
+  renderRiwayat();
+}
+
+function renderRiwayat() {
+  document.getElementById('riwayatMonth').textContent = MONTHS[state.viewMonth] + ' ' + state.viewYear;
+  let txs = getMonthTx(state.viewMonth, state.viewYear);
+  const fType = document.getElementById('fltType').value;
+  const fWho = document.getElementById('fltWho').value;
+  const fCat = document.getElementById('fltCat').value;
+
+  const allCats = [...new Set(state.transactions.map(t=>t.category))].sort();
+  const sel = document.getElementById('fltCat');
+  sel.innerHTML = '<option value="">Semua kategori</option>' + allCats.map(c=>`<option value="${c}" ${c===fCat?'selected':''}>${c}</option>`).join('');
+
+  if(fType) txs=txs.filter(t=>t.type===fType);
+  if(fWho) txs=txs.filter(t=>t.who===fWho);
+  if(fCat) txs=txs.filter(t=>t.category===fCat);
+
+  if(txs.length===0){ document.getElementById('riwayatTable').innerHTML='<div class="empty">Tidak ada transaksi untuk periode ini</div>'; return; }
+  document.getElementById('riwayatTable').innerHTML = `<table>
+    <thead><tr><th>Tanggal</th><th>Keterangan</th><th>Kategori</th><th>Oleh</th><th style="text-align:right">Jumlah</th></tr></thead>
+    <tbody>${txs.map(t=>`<tr>
+      <td style="font-family:'DM Mono',monospace;font-size:12px;white-space:nowrap">${new Date(t.date).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'2-digit'})}</td>
+      <td>${t.desc}</td>
+      <td><span class="badge badge-blue">${t.category}</span></td>
+      <td><span class="badge ${t.who==='Suami'?'who-s':'who-i'}">${t.who}</span></td>
+      <td style="text-align:right;font-family:'DM Mono',monospace;font-weight:600;color:${t.type==='income'?'var(--green)':'var(--red)'}">${t.type==='income'?'+':'-'}${fmt(t.amount)}</td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+
+/* ══════════════════════════════════════════════
+   BUDGET
+══════════════════════════════════════════════ */
+async function saveBudget() {
+  const cat = document.getElementById('bCat').value;
+  const amt = parseFloat(document.getElementById('bAmt').value);
+  if(!amt||amt<=0){ alert('Masukkan jumlah budget.'); return; }
+  if(state.mode==='live') {
+    try { await saveBudgetToExcel(cat, amt); } catch(e) { alert('Gagal simpan: '+e.message); return; }
+  }
+  state.budgets[cat] = amt;
+  document.getElementById('bAmt').value='';
+  renderBudget();
+}
+
+function renderBudget() {
+  const now = new Date();
+  const txs = getMonthTx(now.getMonth(), now.getFullYear()).filter(t=>t.type==='expense');
+  const catMap = {};
+  txs.forEach(t=>{ catMap[t.category]=(catMap[t.category]||0)+t.amount; });
+  document.getElementById('budgetMeta').textContent = MONTHS[now.getMonth()] + ' ' + now.getFullYear();
+
+  const allCats = new Set([...Object.keys(state.budgets), ...Object.keys(catMap)]);
+  let html = '';
+  allCats.forEach(cat => {
+    const limit = state.budgets[cat]||0;
+    const spent = catMap[cat]||0;
+    const pct = limit>0 ? Math.min(100, Math.round(spent/limit*100)) : 0;
+    const color = pct>=100?'var(--red)':pct>=80?'var(--amber)':'var(--green)';
+    const status = pct>=100?'Melebihi!':pct>=80?'Hampir habis':'Aman';
+    html += `<div class="budget-item">
+      <div class="budget-item-top">
+        <div class="cat">${cat}</div>
+        <div class="pct" style="color:${color}">${pct}%</div>
+      </div>
+      <div class="progress"><div class="progress-bar" style="width:${pct}%;background:${color}"></div></div>
+      <div class="budget-item-bot">
+        <span>${fmt(spent)} terpakai</span>
+        <span style="color:${color}">${status} · limit ${limit>0?fmt(limit):'-'}</span>
+      </div>
+    </div>`;
+  });
+  document.getElementById('budgetGrid').innerHTML = html || '<p style="color:var(--muted);font-size:13px">Belum ada budget. Atur di bawah.</p>';
+}
+
+/* ══════════════════════════════════════════════
+   UTILS
+══════════════════════════════════════════════ */
+function setSyncStatus(ok, msg) {
+  document.getElementById('syncDot').className = 'sync-dot' + (ok?'':' err');
+  document.getElementById('syncText').textContent = msg;
+}
+
+function showSetupAlert(msg, type) {
+  const map = {info:'alert-info',warn:'alert-warn',success:'alert-success',err:'alert-err'};
+  document.getElementById('setupAlert').innerHTML = `<div class="alert ${map[type]}">${msg}</div>`;
+}
+
+function showInputAlert(msg, type) {
+  const map = {info:'alert-info',warn:'alert-warn',success:'alert-success',err:'alert-err'};
+  document.getElementById('inputAlert').innerHTML = `<div class="alert ${map[type]}">${msg}</div>`;
+  setTimeout(()=>document.getElementById('inputAlert').innerHTML='', 4000);
+}
+
+/* ══════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════ */
+document.getElementById('fDate').valueAsDate = new Date();
+
+// Restore saved config
+const savedId = localStorage.getItem('db_clientId');
+const savedFile = localStorage.getItem('db_fileName');
+if(savedId) document.getElementById('cfgClientId').value = savedId;
+if(savedFile) document.getElementById('cfgFileName').value = savedFile;
+</script>
+</body>
+</html>
