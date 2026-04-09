@@ -686,23 +686,35 @@ async function graphPatch(url, body) {
 
 async function initExcelFile() {
   let found = null;
-  try {
-    const direct = await graphGet(`/me/drive/root:/${state.fileName}?$select=id,name`);
-    if (direct && direct.id) found = direct;
-  } catch(e) {}
-  if (!found) {
+  const baseName = state.fileName.replace(/\.xlsx$/i, '');
+  const tryNames = [state.fileName, baseName, baseName + '.xlsx', baseName + '.XLSX'];
+  for (const name of tryNames) {
+    if (found) break;
     try {
-      const search = await graphGet(`/me/drive/root/search(q='${state.fileName}')?$select=id,name`);
-      found = search.value?.find(f => f.name === state.fileName);
+      const r = await graphGet(`/me/drive/root:/${encodeURIComponent(name)}?$select=id,name`);
+      if (r && r.id) { found = r; break; }
     } catch(e) {}
   }
   if (!found) {
     try {
-      const children = await graphGet(`/me/drive/root/children?$select=id,name&$top=100`);
-      found = children.value?.find(f => f.name === state.fileName);
+      const children = await graphGet(`/me/drive/root/children?$select=id,name&$top=200`);
+      found = children.value?.find(f => {
+        const fn = f.name.toLowerCase().replace(/\.xlsx$/,'');
+        const sn = baseName.toLowerCase();
+        return fn === sn || f.name.toLowerCase() === state.fileName.toLowerCase();
+      });
     } catch(e) {}
   }
-  if (!found) throw new Error(`File "${state.fileName}" tidak ditemukan. Pastikan nama file di OneDrive persis: ${state.fileName}`);
+  if (!found) {
+    try {
+      const search = await graphGet(`/me/drive/root/search(q='${baseName}')?$select=id,name`);
+      found = search.value?.find(f => {
+        const fn = f.name.toLowerCase().replace(/\.xlsx$/,'');
+        return fn === baseName.toLowerCase() || f.name.toLowerCase() === state.fileName.toLowerCase();
+      });
+    } catch(e) {}
+  }
+  if (!found) throw new Error(`File tidak ditemukan. Cek nama file di OneDrive — nama yang Anda isi: "${state.fileName}"`);
   state.fileId = found.id;
   await ensureSheets();
   await loadFromExcel();
