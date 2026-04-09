@@ -221,51 +221,177 @@
 
     <!-- ═══ SETUP PAGE ═══ -->
     <div id="page-setup" class="page active">
-      <div class="topbar"><div><h1>Koneksi OneDrive</h1><div class="topbar-meta">Setup sekali, langsung terhubung selamanya</div></div></div>
+      <div class="topbar"><div><h1>Koneksi OneDrive</h1><div class="topbar-meta" id="wizardMeta">Langkah 1 dari 4</div></div></div>
       <div class="content">
         <div class="setup-wrap">
 
-          <div class="alert alert-info">
-            Ikuti 3 langkah di bawah untuk menghubungkan web app ini dengan file Excel di OneDrive Anda. Cukup dilakukan sekali.
+          <!-- progress bar -->
+          <div style="display:flex;gap:6px;margin-bottom:24px;align-items:center">
+            <div id="pb1" style="flex:1;height:4px;border-radius:2px;background:var(--accent)"></div>
+            <div id="pb2" style="flex:1;height:4px;border-radius:2px;background:var(--border)"></div>
+            <div id="pb3" style="flex:1;height:4px;border-radius:2px;background:var(--border)"></div>
+            <div id="pb4" style="flex:1;height:4px;border-radius:2px;background:var(--border)"></div>
           </div>
 
-          <div class="setup-card">
-            <div class="setup-step">
-              <div class="step-num">1</div>
-              <div class="step-body">
-                <h3>Daftarkan aplikasi di Azure</h3>
-                <p>Buka <a href="https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationsListBlade" target="_blank">portal.azure.com → App registrations → New registration</a>.</p>
-                <p style="margin-top:6px">Isi nama bebas misal <code>DompetBersama</code>. Pilih <strong>Personal Microsoft accounts only</strong>. Di Redirect URI pilih <strong>Single-page application</strong> lalu isi <code>http://localhost</code> (atau URL file HTML ini jika di-hosting).</p>
-                <p style="margin-top:6px">Setelah dibuat, catat <strong>Application (client) ID</strong>-nya.</p>
+          <!-- WIZARD STEP 1 -->
+          <div id="wiz1" class="setup-card">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+              <div style="width:32px;height:32px;border-radius:50%;background:#1d4ed8;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0">1</div>
+              <div>
+                <h3 style="font-size:15px;font-weight:700">Buat akun GitHub & upload file</h3>
+                <p style="font-size:12px;color:var(--muted)">Untuk hosting web app secara online — gratis selamanya</p>
               </div>
             </div>
-            <div class="setup-step">
-              <div class="step-num">2</div>
-              <div class="step-body">
-                <h3>Buat file Excel di OneDrive</h3>
-                <p>Buka <a href="https://onedrive.live.com" target="_blank">OneDrive</a>, buat folder misal <code>Keuangan</code>, lalu buat file Excel baru bernama <code>DompetBersama.xlsx</code>. Tidak perlu isi apapun — aplikasi akan otomatis membuat sheet dan kolom yang dibutuhkan.</p>
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div class="alert alert-info">Jika sudah punya akun GitHub dan file sudah di-upload, langsung klik <strong>Lanjut</strong>.</div>
+              <div style="display:flex;gap:10px;align-items:flex-start">
+                <div style="width:22px;height:22px;border-radius:50%;background:#dbeafe;color:#1d4ed8;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">a</div>
+                <p style="font-size:13px;line-height:1.6">Buka <a href="https://github.com" target="_blank">github.com</a> → daftar akun gratis → buat repository baru bernama <code style="background:var(--surface2);padding:2px 5px;border-radius:4px;font-size:12px">dompet-bersama</code> (pilih <strong>Public</strong>, centang <em>Add a README file</em>).</p>
+              </div>
+              <div style="display:flex;gap:10px;align-items:flex-start">
+                <div style="width:22px;height:22px;border-radius:50%;background:#dbeafe;color:#1d4ed8;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">b</div>
+                <p style="font-size:13px;line-height:1.6">Rename file HTML yang sudah diunduh menjadi <code style="background:var(--surface2);padding:2px 5px;border-radius:4px;font-size:12px">index.html</code>, lalu upload ke repository: klik <strong>Add file → Upload files</strong> → drag & drop → <strong>Commit changes</strong>.</p>
+              </div>
+              <div style="display:flex;gap:10px;align-items:flex-start">
+                <div style="width:22px;height:22px;border-radius:50%;background:#dbeafe;color:#1d4ed8;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">c</div>
+                <p style="font-size:13px;line-height:1.6">Aktifkan GitHub Pages: di repository → <strong>Settings → Pages → Source</strong> → pilih branch <strong>main</strong> → Save. Tunggu 2 menit, web app online.</p>
               </div>
             </div>
-            <div class="setup-step" style="margin-bottom:0">
-              <div class="step-num">3</div>
-              <div class="step-body">
-                <h3>Tempel ID di bawah dan hubungkan</h3>
-                <div class="field-group">
-                  <label>Client ID (dari langkah 1)</label>
-                  <input type="text" id="cfgClientId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
-                  <label style="margin-top:6px">Nama file Excel (termasuk ekstensi)</label>
-                  <input type="text" id="cfgFileName" value="DompetBersama.xlsx" />
+            <div style="margin-top:18px;display:flex;gap:8px">
+              <button class="btn btn-primary" onclick="wizNext(2)">Lanjut →</button>
+              <button class="btn" onclick="useDemo()">Coba demo dulu</button>
+            </div>
+          </div>
+
+          <!-- WIZARD STEP 2 -->
+          <div id="wiz2" class="setup-card" style="display:none">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+              <div style="width:32px;height:32px;border-radius:50%;background:#059669;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0">2</div>
+              <div>
+                <h3 style="font-size:15px;font-weight:700">Daftar aplikasi di Azure</h3>
+                <p style="font-size:12px;color:var(--muted)">Supaya web app bisa akses file Excel di OneDrive Anda</p>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div style="display:flex;gap:10px;align-items:flex-start">
+                <div style="width:22px;height:22px;border-radius:50%;background:#d1fae5;color:#065f46;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">a</div>
+                <p style="font-size:13px;line-height:1.6">Buka <a href="https://portal.azure.com" target="_blank">portal.azure.com</a> → login dengan akun Microsoft (Outlook/Hotmail) yang sama dengan OneDrive Anda.</p>
+              </div>
+              <div style="display:flex;gap:10px;align-items:flex-start">
+                <div style="width:22px;height:22px;border-radius:50%;background:#d1fae5;color:#065f46;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">b</div>
+                <p style="font-size:13px;line-height:1.6">Di kolom pencarian atas ketik <strong>App registrations</strong> → klik → klik tombol <strong>+ New registration</strong>.</p>
+              </div>
+              <div style="display:flex;gap:10px;align-items:flex-start">
+                <div style="width:22px;height:22px;border-radius:50%;background:#d1fae5;color:#065f46;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">c</div>
+                <div style="font-size:13px;line-height:1.6">
+                  <p>Isi formulir pendaftaran:</p>
+                  <div style="background:var(--surface2);border-radius:8px;padding:10px 14px;margin-top:6px;display:flex;flex-direction:column;gap:6px;font-size:12px">
+                    <div><strong>Name:</strong> DompetBersama</div>
+                    <div><strong>Supported account types:</strong> Personal Microsoft accounts only</div>
+                    <div><strong>Redirect URI:</strong> pilih <em>Single-page application (SPA)</em> → isi URL GitHub Pages Anda:<br><code style="background:var(--border);padding:2px 6px;border-radius:4px;font-size:11px">https://USERNAME.github.io/dompet-bersama</code></div>
+                  </div>
+                  <p style="margin-top:6px">Klik <strong>Register</strong>.</p>
+                </div>
+              </div>
+              <div style="display:flex;gap:10px;align-items:flex-start">
+                <div style="width:22px;height:22px;border-radius:50%;background:#d1fae5;color:#065f46;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">d</div>
+                <div style="font-size:13px;line-height:1.6">
+                  <p>Setelah terdaftar, Anda akan melihat halaman seperti ini. <strong>Salin Application (client) ID</strong> — ini yang akan ditempel di langkah 4:</p>
+                  <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-top:8px;font-size:12px">
+                    <div style="font-size:11px;color:var(--muted);margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Azure Portal — App Overview</div>
+                    <table style="width:100%;border-collapse:collapse;font-size:12px">
+                      <tr><td style="padding:4px 0;color:var(--muted);width:160px">Display name</td><td style="padding:4px 0;font-weight:600">DompetBersama</td></tr>
+                      <tr style="background:rgba(255,220,0,0.2)">
+                        <td style="padding:4px 6px;color:var(--muted)">Application (client) ID</td>
+                        <td style="padding:4px 6px;font-family:monospace;font-size:11px;color:#1d4ed8">a1b2c3d4-xxxx-xxxx-xxxx-ef1234567890</td>
+                      </tr>
+                      <tr><td style="padding:4px 0;color:var(--muted)">Directory (tenant) ID</td><td style="padding:4px 0;font-family:monospace;font-size:11px;color:var(--muted)">xxxxxxxx-xxxx-...</td></tr>
+                    </table>
+                    <div style="margin-top:8px;display:flex;align-items:center;gap:6px;font-size:12px;color:#b45309;background:#fef3cd;border-radius:6px;padding:6px 8px">
+                      <span style="font-size:16px">👆</span> Klik ikon copy di sebelah kanan ID tersebut, lalu simpan
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
+            <div style="margin-top:18px;display:flex;gap:8px">
+              <button class="btn btn-primary" onclick="wizNext(3)">Lanjut →</button>
+              <button class="btn" onclick="wizNext(1)">← Kembali</button>
+            </div>
           </div>
 
-          <div id="setupAlert"></div>
-          <div style="display:flex; gap:8px">
-            <button class="btn btn-primary" onclick="doConnect()">Hubungkan ke OneDrive</button>
-            <button class="btn" onclick="useDemo()">Coba dengan data demo</button>
+          <!-- WIZARD STEP 3 -->
+          <div id="wiz3" class="setup-card" style="display:none">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+              <div style="width:32px;height:32px;border-radius:50%;background:#b45309;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0">3</div>
+              <div>
+                <h3 style="font-size:15px;font-weight:700">Buat file Excel di OneDrive</h3>
+                <p style="font-size:12px;color:var(--muted)">File ini jadi database — semua transaksi tersimpan di sini</p>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div style="display:flex;gap:10px;align-items:flex-start">
+                <div style="width:22px;height:22px;border-radius:50%;background:#fef3cd;color:#92400e;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">a</div>
+                <p style="font-size:13px;line-height:1.6">Buka <a href="https://onedrive.live.com" target="_blank">onedrive.live.com</a> → login dengan akun Microsoft yang sama.</p>
+              </div>
+              <div style="display:flex;gap:10px;align-items:flex-start">
+                <div style="width:22px;height:22px;border-radius:50%;background:#fef3cd;color:#92400e;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">b</div>
+                <div style="font-size:13px;line-height:1.6">
+                  <p>Klik <strong>+ New → Excel workbook</strong>. Beri nama persis seperti di bawah (huruf besar/kecil harus sama):</p>
+                  <div style="background:var(--accent);color:#fff;border-radius:8px;padding:10px 14px;margin-top:6px;font-family:monospace;font-size:14px;font-weight:600;text-align:center;letter-spacing:0.5px">DompetBersama.xlsx</div>
+                  <p style="margin-top:8px;font-size:12px;color:var(--muted)">Tidak perlu isi apapun di dalam file — web app akan otomatis membuat kolom dan sheet yang dibutuhkan.</p>
+                </div>
+              </div>
+            </div>
+            <div style="margin-top:18px;display:flex;gap:8px">
+              <button class="btn btn-primary" onclick="wizNext(4)">Lanjut →</button>
+              <button class="btn" onclick="wizNext(2)">← Kembali</button>
+            </div>
           </div>
-          <p style="font-size:12px; color:var(--muted); margin-top:10px">Mode demo menggunakan data lokal tanpa koneksi OneDrive. Cocok untuk melihat tampilan sebelum setup.</p>
+
+          <!-- WIZARD STEP 4 — TEMPEL CLIENT ID -->
+          <div id="wiz4" class="setup-card" style="display:none">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+              <div style="width:32px;height:32px;border-radius:50%;background:#7c3aed;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0">4</div>
+              <div>
+                <h3 style="font-size:15px;font-weight:700">Tempel Client ID & hubungkan</h3>
+                <p style="font-size:12px;color:var(--muted)">Langkah terakhir — isi dua kolom di bawah ini</p>
+              </div>
+            </div>
+
+            <div style="background:#fef3cd;border:1px solid #fcd34d;border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:13px;color:#78350f;line-height:1.6">
+              <strong>Di sinilah Anda menempel Client ID</strong> yang sudah disalin dari Azure (langkah 2d). Copy-paste ke kolom pertama di bawah.
+            </div>
+
+            <div class="field-group" style="margin-bottom:14px">
+              <label style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px;display:flex;align-items:center;gap:6px">
+                <span style="background:#7c3aed;color:#fff;width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px">1</span>
+                Application (client) ID — dari Azure
+              </label>
+              <input type="text" id="cfgClientId" placeholder="Tempel di sini: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" style="font-family:'DM Mono',monospace;font-size:13px;border:2px solid #7c3aed;padding:11px 12px" />
+              <p style="font-size:11px;color:var(--muted);margin-top:4px">Contoh: a1b2c3d4-e5f6-7890-abcd-ef1234567890</p>
+            </div>
+
+            <div class="field-group" style="margin-bottom:20px">
+              <label style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px;display:flex;align-items:center;gap:6px">
+                <span style="background:#7c3aed;color:#fff;width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px">2</span>
+                Nama file Excel di OneDrive
+              </label>
+              <input type="text" id="cfgFileName" value="DompetBersama.xlsx" style="font-family:'DM Mono',monospace;font-size:13px" />
+              <p style="font-size:11px;color:var(--muted);margin-top:4px">Biarkan seperti ini jika nama file sudah <strong>DompetBersama.xlsx</strong></p>
+            </div>
+
+            <div id="setupAlert" style="margin-bottom:12px"></div>
+
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn btn-primary" onclick="doConnect()" style="font-size:14px;padding:11px 22px">
+                Hubungkan ke OneDrive →
+              </button>
+              <button class="btn" onclick="wizNext(3)">← Kembali</button>
+              <button class="btn" onclick="useDemo()" style="margin-left:auto;color:var(--muted)">Pakai demo saja</button>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
@@ -506,7 +632,7 @@ async function doConnect() {
 async function msalLogin() {
   // Use MSAL via CDN-less popup approach with implicit flow
   const authUrl = `https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize?` +
-    `client_id=${state.clientId}&response_type=token&redirect_uri=${encodeURIComponent(location.href)}&` +
+    `client_id=${state.clientId}&response_type=token&redirect_uri=${encodeURIComponent(location.origin + location.pathname.split("#")[0].split("?")[0])}&` +
     `scope=${encodeURIComponent(SCOPES.join(' '))}&response_mode=fragment`;
   const popup = window.open(authUrl, 'msauth', 'width=500,height=600');
   const token = await new Promise((resolve, reject) => {
@@ -559,9 +685,24 @@ async function graphPatch(url, body) {
 }
 
 async function initExcelFile() {
-  const search = await graphGet(`/me/drive/root/search(q='${state.fileName}')?$select=id,name`);
-  const found = search.value?.find(f => f.name === state.fileName);
-  if (!found) throw new Error(`File "${state.fileName}" tidak ditemukan di OneDrive. Buat dulu ya.`);
+  let found = null;
+  try {
+    const direct = await graphGet(`/me/drive/root:/${state.fileName}?$select=id,name`);
+    if (direct && direct.id) found = direct;
+  } catch(e) {}
+  if (!found) {
+    try {
+      const search = await graphGet(`/me/drive/root/search(q='${state.fileName}')?$select=id,name`);
+      found = search.value?.find(f => f.name === state.fileName);
+    } catch(e) {}
+  }
+  if (!found) {
+    try {
+      const children = await graphGet(`/me/drive/root/children?$select=id,name&$top=100`);
+      found = children.value?.find(f => f.name === state.fileName);
+    } catch(e) {}
+  }
+  if (!found) throw new Error(`File "${state.fileName}" tidak ditemukan. Pastikan nama file di OneDrive persis: ${state.fileName}`);
   state.fileId = found.id;
   await ensureSheets();
   await loadFromExcel();
@@ -850,15 +991,28 @@ function showInputAlert(msg, type) {
 }
 
 /* ══════════════════════════════════════════════
+   WIZARD
+══════════════════════════════════════════════ */
+function wizNext(step) {
+  for(let i=1;i<=4;i++){
+    document.getElementById('wiz'+i).style.display = i===step ? 'block' : 'none';
+    const pb = document.getElementById('pb'+i);
+    pb.style.background = i <= step ? 'var(--accent)' : 'var(--border)';
+  }
+  document.getElementById('wizardMeta').textContent = 'Langkah ' + step + ' dari 4';
+}
+
+/* ══════════════════════════════════════════════
    INIT
 ══════════════════════════════════════════════ */
 document.getElementById('fDate').valueAsDate = new Date();
 
-// Restore saved config
 const savedId = localStorage.getItem('db_clientId');
 const savedFile = localStorage.getItem('db_fileName');
 if(savedId) document.getElementById('cfgClientId').value = savedId;
 if(savedFile) document.getElementById('cfgFileName').value = savedFile;
+
+wizNext(1);
 </script>
 </body>
 </html>
