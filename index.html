@@ -8,22 +8,22 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
   :root {
-    --bg: #f7f6f3;
+    --bg: #f0f4ff;
     --surface: #ffffff;
-    --surface2: #f0efe9;
-    --border: #e4e2d9;
-    --text: #1a1916;
-    --muted: #7a7870;
-    --accent: #2d4a3e;
-    --accent-l: #e8f0ec;
-    --green: #1a7a4a;
-    --green-l: #e6f5ec;
-    --red: #c0392b;
-    --red-l: #fdecea;
-    --amber: #b45309;
-    --amber-l: #fef3cd;
-    --blue: #1d4ed8;
-    --blue-l: #eff6ff;
+    --surface2: #e8eeff;
+    --border: #d0d9f5;
+    --text: #0f172a;
+    --muted: #64748b;
+    --accent: #1e40af;
+    --accent-l: #dbeafe;
+    --green: #059669;
+    --green-l: #d1fae5;
+    --red: #dc2626;
+    --red-l: #fee2e2;
+    --amber: #d97706;
+    --amber-l: #fef3c7;
+    --blue: #2563eb;
+    --blue-l: #dbeafe;
     --radius: 12px;
     --radius-sm: 8px;
   }
@@ -34,7 +34,7 @@
   /* ── Layout ── */
   .shell { display: flex; min-height: 100vh; }
   .sidebar {
-    width: 220px; flex-shrink: 0; background: var(--accent);
+    width: 220px; flex-shrink: 0; background: linear-gradient(180deg,#1e3a8a 0%,#1e40af 100%);
     display: flex; flex-direction: column; padding: 24px 16px;
     position: sticky; top: 0; height: 100vh;
   }
@@ -411,24 +411,43 @@
       <div class="content">
         <div id="dashLoading" class="loading"><div class="spinner"></div> Memuat dari OneDrive…</div>
         <div id="dashContent" style="display:none">
+
+          <!-- Row 1: 4 metric cards -->
           <div class="metrics" id="metricsRow"></div>
-          <div class="charts-row">
-            <div class="chart-card">
-              <h3>Tren 6 bulan terakhir</h3>
-              <div class="chart-wrap"><canvas id="trendChart"></canvas></div>
-            </div>
+
+          <!-- Row 2: saving target widget + donut chart -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+            <div class="chart-card" id="savingWidget"></div>
             <div class="chart-card">
               <h3>Pengeluaran per kategori</h3>
-              <div class="chart-wrap"><canvas id="catChart"></canvas></div>
+              <div class="chart-wrap"><canvas id="catChart" role="img" aria-label="Donut chart pengeluaran per kategori">Pengeluaran per kategori.</canvas></div>
             </div>
           </div>
-          <div class="table-card">
-            <div class="table-header">
-              <h3>Transaksi terbaru</h3>
-              <button class="btn btn-sm" onclick="showPage('riwayat')">Lihat semua</button>
+
+          <!-- Row 3: trend chart full width -->
+          <div class="chart-card" style="margin-bottom:14px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+              <h3 style="margin:0">Tren 6 bulan terakhir</h3>
+              <div style="display:flex;gap:12px;font-size:11px;color:var(--muted)">
+                <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#2563eb;display:inline-block"></span>Pemasukan</span>
+                <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#dc2626;display:inline-block"></span>Pengeluaran</span>
+              </div>
             </div>
-            <div id="recentTable"></div>
+            <div class="chart-wrap" style="height:180px"><canvas id="trendChart" role="img" aria-label="Bar chart tren pemasukan dan pengeluaran 6 bulan">Tren 6 bulan.</canvas></div>
           </div>
+
+          <!-- Row 4: suami vs istri + recent table -->
+          <div style="display:grid;grid-template-columns:300px 1fr;gap:14px;margin-bottom:14px">
+            <div class="chart-card" id="whoWidget"></div>
+            <div class="table-card">
+              <div class="table-header">
+                <h3>Transaksi terbaru</h3>
+                <button class="btn btn-sm" onclick="showPage('riwayat')">Lihat semua</button>
+              </div>
+              <div id="recentTable"></div>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
@@ -533,13 +552,14 @@ const SHEET_NAME = 'Transaksi';
 const BUDGET_SHEET = 'Budget';
 
 let state = {
-  mode: 'setup',       // 'setup' | 'demo' | 'live'
+  mode: 'setup',
   clientId: '',
   fileName: '',
   fileId: '',
   accessToken: '',
   transactions: [],
   budgets: {},
+  savingTarget: 0,
   currentType: 'expense',
   viewMonth: new Date().getMonth(),
   viewYear: new Date().getFullYear(),
@@ -821,62 +841,179 @@ function renderDashboard() {
   const now = new Date();
   const m = now.getMonth(), y = now.getFullYear();
   const txs = getMonthTx(m, y);
-  const income = txs.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount, 0);
-  const expense = txs.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount, 0);
+  const income = txs.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+  const expense = txs.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
   const balance = income - expense;
   const savPct = income > 0 ? Math.round(balance/income*100) : 0;
+  const savingTarget = state.savingTarget || 0;
+  const savedAmt = Math.max(0, balance);
+
   document.getElementById('dashboardMeta').textContent = MONTHS[m] + ' ' + y + ' · ' + txs.length + ' transaksi';
+
+  // ── Metric cards ──
+  const prevM = m===0?11:m-1, prevY = m===0?y-1:y;
+  const prevTxs = getMonthTx(prevM, prevY);
+  const prevExp = prevTxs.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  const expDiff = prevExp>0 ? Math.round((expense-prevExp)/prevExp*100) : 0;
+  const topCat = (() => {
+    const cm={}; txs.filter(t=>t.type==='expense').forEach(t=>cm[t.category]=(cm[t.category]||0)+t.amount);
+    return Object.entries(cm).sort((a,b)=>b[1]-a[1])[0];
+  })();
+
   document.getElementById('metricsRow').innerHTML = `
-    <div class="metric green"><div class="metric-label">Pemasukan</div><div class="metric-val">${fmt(income)}</div><div class="metric-sub">Bulan ini</div></div>
-    <div class="metric red"><div class="metric-label">Pengeluaran</div><div class="metric-val">${fmt(expense)}</div><div class="metric-sub">Bulan ini</div></div>
-    <div class="metric accent"><div class="metric-label">Saldo Bersih</div><div class="metric-val">${fmt(balance)}</div><div class="metric-sub">Bulan ini</div></div>
-    <div class="metric amber"><div class="metric-label">Tabungan</div><div class="metric-val">${savPct}%</div><div class="metric-sub">Dari pemasukan</div></div>
+    <div class="metric" style="border-left:3px solid #2563eb">
+      <div class="metric-label">Pemasukan</div>
+      <div class="metric-val" style="color:#2563eb">${fmt(income)}</div>
+      <div class="metric-sub">Bulan ini</div>
+    </div>
+    <div class="metric" style="border-left:3px solid var(--red)">
+      <div class="metric-label">Pengeluaran</div>
+      <div class="metric-val" style="color:var(--red)">${fmt(expense)}</div>
+      <div class="metric-sub" style="color:${expDiff>0?'var(--red)':'var(--green)'}">
+        ${expDiff>0?'&#9650;':'&#9660;'} ${Math.abs(expDiff)}% vs bulan lalu
+      </div>
+    </div>
+    <div class="metric" style="border-left:3px solid ${balance>=0?'#2563eb':'var(--red)'}">
+      <div class="metric-label">Saldo Bersih</div>
+      <div class="metric-val" style="color:${balance>=0?'#2563eb':'var(--red)'}">${fmt(balance)}</div>
+      <div class="metric-sub">Bulan ini</div>
+    </div>
+    <div class="metric" style="border-left:3px solid var(--amber)">
+      <div class="metric-label">Terbesar</div>
+      <div class="metric-val" style="color:var(--amber);font-size:16px">${topCat?topCat[0]:'—'}</div>
+      <div class="metric-sub">${topCat?fmt(topCat[1]):'-'}</div>
+    </div>
   `;
 
-  // Trend chart
-  const months6 = [];
-  for(let i=5;i>=0;i--){
-    const d = new Date(y, m-i, 1);
-    months6.push({ label:MONTHS[d.getMonth()].slice(0,3), m:d.getMonth(), y:d.getFullYear() });
-  }
-  const incArr = months6.map(x=>getMonthTx(x.m,x.y).filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0));
-  const expArr = months6.map(x=>getMonthTx(x.m,x.y).filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0));
-  if(trendInst) trendInst.destroy();
-  trendInst = new Chart(document.getElementById('trendChart'), {
+  // ── Saving target widget ──
+  const tPct = savingTarget>0 ? Math.min(100,Math.round(savedAmt/savingTarget*100)) : savPct;
+  const tColor = tPct>=100?'#059669':tPct>=60?'#2563eb':'#d97706';
+  const circumference = 2 * Math.PI * 54;
+  const dashOffset = circumference - (tPct/100)*circumference;
+  document.getElementById('savingWidget').innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <h3 style="margin:0;font-size:13px;color:var(--muted);font-weight:600">Target Tabungan</h3>
+      <button onclick="editSavingTarget()" style="font-size:11px;padding:3px 9px;border-radius:6px;border:1px solid var(--border);background:transparent;cursor:pointer;color:var(--muted)">Atur</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:20px">
+      <svg width="120" height="120" style="flex-shrink:0">
+        <circle cx="60" cy="60" r="54" fill="none" stroke="#e8eeff" stroke-width="10"/>
+        <circle cx="60" cy="60" r="54" fill="none" stroke="${tColor}" stroke-width="10"
+          stroke-dasharray="${circumference}" stroke-dashoffset="${dashOffset}"
+          stroke-linecap="round" transform="rotate(-90 60 60)" style="transition:stroke-dashoffset .6s"/>
+        <text x="60" y="55" text-anchor="middle" font-size="20" font-weight="700" fill="${tColor}" font-family="DM Mono,monospace">${tPct}%</text>
+        <text x="60" y="72" text-anchor="middle" font-size="10" fill="#64748b">tercapai</text>
+      </svg>
+      <div style="flex:1;display:flex;flex-direction:column;gap:8px">
+        <div style="background:var(--surface2);border-radius:8px;padding:10px 12px">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:2px">Sudah ditabung</div>
+          <div style="font-size:15px;font-weight:700;color:${tColor};font-family:'DM Mono',monospace">${fmt(savedAmt)}</div>
+        </div>
+        <div style="background:var(--surface2);border-radius:8px;padding:10px 12px">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:2px">Target</div>
+          <div style="font-size:15px;font-weight:700;color:var(--text);font-family:'DM Mono',monospace">${savingTarget>0?fmt(savingTarget):'Belum diatur'}</div>
+        </div>
+        ${savingTarget>0&&savedAmt<savingTarget?`<div style="font-size:11px;color:var(--amber);background:#fef3c7;border-radius:6px;padding:6px 8px">Kurang ${fmt(savingTarget-savedAmt)} lagi</div>`:''}
+        ${tPct>=100?`<div style="font-size:11px;color:var(--green);background:#d1fae5;border-radius:6px;padding:6px 8px">&#10003; Target tercapai!</div>`:''}
+      </div>
+    </div>
+  `;
+
+  // ── Suami vs Istri widget ──
+  const suamiExp = txs.filter(t=>t.type==='expense'&&t.who==='Suami').reduce((s,t)=>s+t.amount,0);
+  const istriExp = txs.filter(t=>t.type==='expense'&&t.who==='Istri').reduce((s,t)=>s+t.amount,0);
+  const totalWho = suamiExp + istriExp || 1;
+  const suamiPct = Math.round(suamiExp/totalWho*100);
+  const istriPct = 100-suamiPct;
+  const suamiInc = txs.filter(t=>t.type==='income'&&t.who==='Suami').reduce((s,t)=>s+t.amount,0);
+  const istriInc = txs.filter(t=>t.type==='income'&&t.who==='Istri').reduce((s,t)=>s+t.amount,0);
+  document.getElementById('whoWidget').innerHTML = `
+    <h3 style="margin:0 0 12px;font-size:13px;color:var(--muted);font-weight:600">Suami vs Istri</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+      <div style="background:#ede9fe;border-radius:8px;padding:10px 12px;text-align:center">
+        <div style="font-size:11px;font-weight:600;color:#5b21b6;margin-bottom:4px">SUAMI</div>
+        <div style="font-size:16px;font-weight:700;color:#5b21b6;font-family:'DM Mono',monospace">${fmt(suamiExp)}</div>
+        <div style="font-size:10px;color:#7c3aed;margin-top:2px">pengeluaran</div>
+      </div>
+      <div style="background:#fce7f3;border-radius:8px;padding:10px 12px;text-align:center">
+        <div style="font-size:11px;font-weight:600;color:#9d174d;margin-bottom:4px">ISTRI</div>
+        <div style="font-size:16px;font-weight:700;color:#9d174d;font-family:'DM Mono',monospace">${fmt(istriExp)}</div>
+        <div style="font-size:10px;color:#be185d;margin-top:2px">pengeluaran</div>
+      </div>
+    </div>
+    <div style="margin-bottom:6px">
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:4px">
+        <span>Suami ${suamiPct}%</span><span>Istri ${istriPct}%</span>
+      </div>
+      <div style="height:8px;border-radius:4px;overflow:hidden;background:#fce7f3;display:flex">
+        <div style="width:${suamiPct}%;background:#7c3aed;transition:width .4s"></div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px">
+      <div style="font-size:11px;color:var(--muted);background:var(--surface2);border-radius:6px;padding:6px 8px">
+        <div>Pemasukan Suami</div><div style="font-weight:600;color:var(--text)">${fmt(suamiInc)}</div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);background:var(--surface2);border-radius:6px;padding:6px 8px">
+        <div>Pemasukan Istri</div><div style="font-weight:600;color:var(--text)">${fmt(istriInc)}</div>
+      </div>
+    </div>
+  `;
+
+  // ── Trend chart ──
+  const months6=[];
+  for(let i=5;i>=0;i--){const d=new Date(y,m-i,1);months6.push({label:MONTHS[d.getMonth()].slice(0,3),m:d.getMonth(),y:d.getFullYear()});}
+  const incArr=months6.map(x=>getMonthTx(x.m,x.y).filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0));
+  const expArr=months6.map(x=>getMonthTx(x.m,x.y).filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0));
+  if(trendInst)trendInst.destroy();
+  trendInst=new Chart(document.getElementById('trendChart'),{
     type:'bar',
-    data:{ labels:months6.map(x=>x.label),
-      datasets:[
-        {label:'Pemasukan',data:incArr,backgroundColor:'#1a7a4a33',borderColor:'#1a7a4a',borderWidth:1.5,borderRadius:4},
-        {label:'Pengeluaran',data:expArr,backgroundColor:'#c0392b33',borderColor:'#c0392b',borderWidth:1.5,borderRadius:4}
-      ]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{boxWidth:10,font:{size:11}}}},
-      scales:{y:{ticks:{callback:v=>'Rp'+Math.round(v/1000)+'rb',font:{size:10}},grid:{color:'#f0efe9'}}}}
+    data:{labels:months6.map(x=>x.label),datasets:[
+      {label:'Pemasukan',data:incArr,backgroundColor:'#2563eb22',borderColor:'#2563eb',borderWidth:1.5,borderRadius:4},
+      {label:'Pengeluaran',data:expArr,backgroundColor:'#dc262622',borderColor:'#dc2626',borderWidth:1.5,borderRadius:4}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{y:{ticks:{callback:v=>'Rp'+Math.round(v/1000)+'rb',font:{size:10}},grid:{color:'#e8eeff'}},
+              x:{grid:{display:false}}}}
   });
 
-  // Cat chart
-  const catMap = {};
-  txs.filter(t=>t.type==='expense').forEach(t=>{ catMap[t.category]=(catMap[t.category]||0)+t.amount; });
-  const cats=Object.keys(catMap), vals=cats.map(c=>catMap[c]);
-  const colors=['#2d4a3e','#1a7a4a','#b45309','#c0392b','#1d4ed8','#7c3aed','#0f766e','#9d174d'];
-  if(catInst) catInst.destroy();
-  if(cats.length>0) catInst = new Chart(document.getElementById('catChart'), {
-    type:'doughnut', data:{labels:cats,datasets:[{data:vals,backgroundColor:colors.slice(0,cats.length),borderWidth:0}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:11}}}}}
+  // ── Cat donut chart ──
+  const catMap={};
+  txs.filter(t=>t.type==='expense').forEach(t=>{catMap[t.category]=(catMap[t.category]||0)+t.amount;});
+  const cats=Object.keys(catMap),vals=cats.map(c=>catMap[c]);
+  const colors=['#2563eb','#7c3aed','#dc2626','#d97706','#059669','#0284c7','#9333ea','#db2777'];
+  if(catInst)catInst.destroy();
+  if(cats.length>0)catInst=new Chart(document.getElementById('catChart'),{
+    type:'doughnut',
+    data:{labels:cats,datasets:[{data:vals,backgroundColor:colors.slice(0,cats.length),borderWidth:0,hoverOffset:4}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'65%',
+      plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:11},padding:8}}}}
   });
 
-  // Recent table
-  const recent = state.transactions.slice(0,8);
-  if(recent.length===0){ document.getElementById('recentTable').innerHTML='<div class="empty">Belum ada transaksi</div>'; return; }
-  document.getElementById('recentTable').innerHTML = `<table>
+  // ── Recent table ──
+  const recent=state.transactions.slice(0,6);
+  if(recent.length===0){document.getElementById('recentTable').innerHTML='<div class="empty">Belum ada transaksi</div>';return;}
+  document.getElementById('recentTable').innerHTML=`<table>
     <thead><tr><th>Tanggal</th><th>Keterangan</th><th>Kategori</th><th>Oleh</th><th style="text-align:right">Jumlah</th></tr></thead>
     <tbody>${recent.map(t=>`<tr>
-      <td style="font-family:'DM Mono',monospace;font-size:12px">${new Date(t.date + (t.date.length===10?'T00:00:00':'')).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'2-digit'})}</td>
-      <td>${t.desc}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:12px;white-space:nowrap">${new Date(t.date+(t.date.length===10?'T00:00:00':'')).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'2-digit'})}</td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.desc}</td>
       <td><span class="badge badge-blue">${t.category}</span></td>
       <td><span class="badge ${t.who==='Suami'?'who-s':'who-i'}">${t.who}</span></td>
-      <td style="text-align:right;font-family:'DM Mono',monospace;font-weight:600;color:${t.type==='income'?'var(--green)':'var(--red)'}">${t.type==='income'?'+':'-'}${fmt(t.amount)}</td>
+      <td style="text-align:right;font-family:'DM Mono',monospace;font-weight:600;color:${t.type==='income'?'var(--green)':'var(--red)'};white-space:nowrap">${t.type==='income'?'+':'-'}${fmt(t.amount)}</td>
     </tr>`).join('')}</tbody>
   </table>`;
+}
+
+function editSavingTarget() {
+  const val = prompt('Masukkan target tabungan bulanan (Rp):', state.savingTarget||'');
+  if(val===null) return;
+  const n = parseFloat(val.replace(/[^0-9]/g,''));
+  if(!isNaN(n) && n>=0) {
+    state.savingTarget = n;
+    localStorage.setItem('db_savingTarget', n);
+    renderDashboard();
+  }
 }
 
 /* ══════════════════════════════════════════════
@@ -1045,6 +1182,8 @@ const savedFile = localStorage.getItem('db_fileName');
 if(savedId) document.getElementById('cfgClientId').value = savedId;
 if(savedFile) document.getElementById('cfgFileName').value = savedFile;
 
+const savedTarget = localStorage.getItem('db_savingTarget');
+if(savedTarget) state.savingTarget = parseFloat(savedTarget);
 wizNext(1);
 </script>
 </body>
