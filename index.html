@@ -861,7 +861,7 @@ function renderDashboard() {
   document.getElementById('recentTable').innerHTML = `<table>
     <thead><tr><th>Tanggal</th><th>Keterangan</th><th>Kategori</th><th>Oleh</th><th style="text-align:right">Jumlah</th></tr></thead>
     <tbody>${recent.map(t=>`<tr>
-      <td style="font-family:'DM Mono',monospace;font-size:12px">${new Date(t.date).toLocaleDateString('id-ID',{day:'2-digit',month:'short'})}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:12px">${new Date(t.date + (t.date.length===10?'T00:00:00':'')).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'2-digit'})}</td>
       <td>${t.desc}</td>
       <td><span class="badge badge-blue">${t.category}</span></td>
       <td><span class="badge ${t.who==='Suami'?'who-s':'who-i'}">${t.who}</span></td>
@@ -889,7 +889,9 @@ async function saveTransaction() {
   if(!date){ showInputAlert('Pilih tanggal.','err'); return; }
   if(!desc){ showInputAlert('Isi keterangan transaksi.','err'); return; }
 
-  const tx = { id: Date.now(), date, type: state.currentType, category, desc, who, amount };
+  const d = new Date(date + 'T00:00:00');
+  const isoDate = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  const tx = { id: Date.now(), date: isoDate, type: state.currentType, category, desc, who, amount };
   document.getElementById('btnSave').textContent = 'Menyimpan…';
   document.getElementById('btnSave').disabled = true;
   try {
@@ -939,7 +941,7 @@ function renderRiwayat() {
   document.getElementById('riwayatTable').innerHTML = `<table>
     <thead><tr><th>Tanggal</th><th>Keterangan</th><th>Kategori</th><th>Oleh</th><th style="text-align:right">Jumlah</th></tr></thead>
     <tbody>${txs.map(t=>`<tr>
-      <td style="font-family:'DM Mono',monospace;font-size:12px;white-space:nowrap">${new Date(t.date).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'2-digit'})}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:12px;white-space:nowrap">${new Date(t.date + (t.date.length===10?'T00:00:00':'')).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'2-digit'})}</td>
       <td>${t.desc}</td>
       <td><span class="badge badge-blue">${t.category}</span></td>
       <td><span class="badge ${t.who==='Suami'?'who-s':'who-i'}">${t.who}</span></td>
