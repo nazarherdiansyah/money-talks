@@ -734,19 +734,16 @@ async function ensureSheets() {
   const names = sheets.value.map(s => s.name);
   if (!names.includes(SHEET_NAME)) {
     await graphPost(`/me/drive/items/${state.fileId}/workbook/worksheets`, { name: SHEET_NAME });
-    await graphPost(`/me/drive/items/${state.fileId}/workbook/worksheets/${SHEET_NAME}/tables`, {
-      address: `${SHEET_NAME}!A1:G1`, hasHeaders: true
-    });
-    await graphPatch(`/me/drive/items/${state.fileId}/workbook/worksheets/${SHEET_NAME}/range(address='A1:G1')`, {
-      values: [['ID','Tanggal','Tipe','Kategori','Keterangan','Dicatat Oleh','Jumlah']]
-    });
   }
+  await graphPatch(`/me/drive/items/${state.fileId}/workbook/worksheets/${SHEET_NAME}/range(address='${SHEET_NAME}!A1:G1')`, {
+    values: [['ID','Tanggal','Tipe','Kategori','Keterangan','Dicatat Oleh','Jumlah']]
+  });
   if (!names.includes(BUDGET_SHEET)) {
     await graphPost(`/me/drive/items/${state.fileId}/workbook/worksheets`, { name: BUDGET_SHEET });
-    await graphPatch(`/me/drive/items/${state.fileId}/workbook/worksheets/${BUDGET_SHEET}/range(address='A1:B1')`, {
-      values: [['Kategori','Limit']]
-    });
   }
+  await graphPatch(`/me/drive/items/${state.fileId}/workbook/worksheets/${BUDGET_SHEET}/range(address='${BUDGET_SHEET}!A1:B1')`, {
+    values: [['Kategori','Limit']]
+  });
 }
 
 async function loadFromExcel() {
@@ -766,8 +763,12 @@ async function loadFromExcel() {
 }
 
 async function appendRowToExcel(tx) {
-  const row = [[tx.id, tx.date, tx.type, tx.category, tx.desc, tx.who, tx.amount]];
-  await graphPost(`/me/drive/items/${state.fileId}/workbook/worksheets/${SHEET_NAME}/tables/0/rows`, { values: row });
+  const used = await graphGet(`/me/drive/items/${state.fileId}/workbook/worksheets/${SHEET_NAME}/usedRange?$select=rowCount`);
+  const nextRow = (used.rowCount || 1) + 1;
+  const range = `${SHEET_NAME}!A${nextRow}:G${nextRow}`;
+  await graphPatch(`/me/drive/items/${state.fileId}/workbook/worksheets/${SHEET_NAME}/range(address='${range}')`, {
+    values: [[tx.id, tx.date, tx.type, tx.category, tx.desc, tx.who, tx.amount]]
+  });
 }
 
 async function saveBudgetToExcel(cat, amt) {
