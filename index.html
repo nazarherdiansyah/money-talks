@@ -751,9 +751,18 @@ async function loadFromExcel() {
     const usedRange = await graphGet(`/me/drive/items/${state.fileId}/workbook/worksheets/${SHEET_NAME}/usedRange`);
     const rows = usedRange.values || [];
     if (rows.length <= 1) { state.transactions = []; return; }
-    state.transactions = rows.slice(1).filter(r => r[0]).map(r => ({
-      id: r[0], date: r[1], type: r[2], category: r[3], desc: r[4], who: r[5], amount: Number(r[6])
-    })).sort((a,b) => new Date(b.date)-new Date(a.date));
+    state.transactions = rows.slice(1).filter(r => r[0]).map(r => {
+      let rawDate = r[1] || '';
+      let isoDate = rawDate;
+      if (rawDate.includes('/')) {
+        const parts = rawDate.split('/');
+        if (parts.length === 3) {
+          const [m, d, y] = parts;
+          isoDate = `${y.length===4?y:'20'+y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        }
+      }
+      return { id: r[0], date: isoDate, type: r[2], category: r[3], desc: r[4], who: r[5], amount: Number(r[6]) };
+    }).sort((a,b) => new Date(b.date)-new Date(a.date));
 
     const bRange = await graphGet(`/me/drive/items/${state.fileId}/workbook/worksheets/${BUDGET_SHEET}/usedRange`);
     const bRows = bRange.values || [];
